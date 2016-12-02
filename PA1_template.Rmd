@@ -1,25 +1,124 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template.Rmd"
+author: "Robin"
+date: "27 November 2016"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 999)
+library(knitr)
+library(markdown)
+library(lattice)
+```
+## Get File and download
+```{Download File, unzip then read CSV into dataset}
+if(!file.exists("./data")){dir.create("./data")}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip?accessType=DOWNLOAD"
+```
+## Then Unzip File
+```{Unzip file}
+unzip(zipfile="./data/repdata%2Fdata%2Factivity.zip",exdir="./data")
+```
+## Then read CSV and create Dataset
+```{Read CSV}
+if(!exists("Activity_Data")){
+ Activity_Data <- read.csv("./data/activity.csv", header = TRUE, sep = ",", na.strings="NA")
+}
+```
+## Total steps by day
+```{Create Total Steps by Day}
+Steps_Day <- aggregate(steps ~ date, Activity_Data, sum)
+```
+## Create Histogram of Total Steps per Day.
+```{plot 1, echo=FALSE}
+hist(Steps_Day$steps, main = paste("Total Steps Each Day"), col="blue", xlab="Number of Steps")
 
-## Loading and preprocessing the data
+```
+
+## Calculate the Mead and Median values for Steps taken per Day
+```{Mean and Median Values}
+Mean_Steps <- mean(Steps_Day$steps)
+Mean_Steps
+10766.19
 
 
+Median_Steps <- median(Steps_Day$steps)
+Median_Steps
+10765
+```
+Mean Steps = 10766.19 and Median Steps = 10765
 
-## What is mean total number of steps taken per day?
+## Create Steps Interval
+```{Steps Interval}
+Steps_Interval <- aggregate(steps ~ interval, Activity_Data, mean)
+```
+
+## Plot Steps Interval
+```{Steps_Interval, echo=TRUE}
+plot(Steps_Interval$interval,Steps_Interval$steps, type="l", xlab="Interval", ylab="Number of Steps",main="Average Number of Steps per Day by Interval")
+```
+
+## Calculate Maximum number of Steps
+```{Maximum Steps}
+Max_Interval <- Steps_Interval[which.max(Steps_Interval$steps),1]
+Max_Interval
+835
+```
+Maximum number of steps = 835
+
+## Count number of N/As
+```{Count N/A}
+ActData_NA <- sum(!complete.cases(Activity_Data))
+ActData_NA
+2304
+```
+Total number of cases that were set as N/As = 2304
+
+## Update N/As
+```{Update N/As}
+Activity_Data2<- Activity_Data
+Get_NAs <- is.na(Activity_Data2$steps)
+Avg_Interval<- tapply(Activity_Data2$steps, Activity_Data2$interval, mean, na.rm=TRUE, simplify = TRUE)
+Activity_Data2$steps[Get_NAs] <- Avg_Interval[as.character(Activity_Data2$interval[Get_NAs])]
+```
+
+## Reset Steps per Day to include updated N/As
+```{Update Steps per Day}
+Steps_Day <- aggregate(steps ~ date, Activity_Data2, sum)
+```
+
+## Recount Median and Mean Values
+```{Recount Mean and Median}
+Mean_Steps <- mean(Steps_Day$steps)
+Mean_Steps
+10766.19
+
+Median_Steps <- median(Steps_Day$steps)
+Median_Steps
+10766.19
+```
+Mean Steps = 10766.19 and Median Steps now equals 10766.19
 
 
+## Re-Create plot1 to implement updated Median values
+```{Re-create Plot 1, echo=TRUE}
+hist(Steps_Day$steps, main = paste("Total Steps Each Day"), col="blue", xlab="Number of Steps")
+```
 
-## What is the average daily activity pattern?
+## Creating a variable then plot to compare and contrast number of steps between the week and weekend.
+## Examining if there is a higher peak earlier on weekdays, or more overall activity on weekends.
+```{Create Days}
+weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 
+Activity_Data2$dow = as.factor(ifelse(is.element(weekdays(as.Date(Activity_Data2$date)),weekdays), "Weekday", "Weekend"))
 
+Steps_Interval_i <- aggregate(steps ~ interval + dow, Activity_Data2, mean)
+```
 
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+## Creating Plot for Days of Week
+```{DoW, echo=TRUE}
+xyplot(Steps_Interval_i$steps ~ Steps_Interval_i$interval|Steps_Interval_i$dow, main="Average Steps per Day by Interval",
+         xlab="Interval", ylab="Steps",layout=c(1,2), type="l")
+```
